@@ -22,9 +22,26 @@ def get_ai_response(prompt):
 st.title("Sovereign Negotiator")
 user_input = st.text_input("Enter your negotiation prompt:")
 
-if st.button("Negotiate"):
-    if user_input:
-        answer = get_ai_response(user_input)
-        st.write(answer)
-    else:
-        st.warning("Please enter a prompt first.")
+# 1. Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# 2. Display existing messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# 3. Handle new input
+if prompt := st.chat_input("Negotiate your terms..."):
+    # Display user input
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Get AI response
+    with st.chat_message("assistant"):
+        response = model.generate_content(prompt)
+        st.markdown(response.text)
+    
+    # Save AI response
+    st.session_state.messages.append({"role": "assistant", "content": response.text})
