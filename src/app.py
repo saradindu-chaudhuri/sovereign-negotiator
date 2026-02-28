@@ -19,7 +19,7 @@ selected_strategy = st.sidebar.selectbox("Select Expert Persona:", list(STRATEGI
 st.sidebar.markdown("---")
 st.sidebar.info("This tool generates high-leverage negotiation strategies based on your unique scenario.")
 
-# Initialize Model with the chosen Persona
+# Initialize Model
 model = genai.GenerativeModel(
     'gemini-1.5-flash',
     system_instruction=STRATEGIES[selected_strategy]
