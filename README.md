@@ -1,6 +1,7 @@
 # Sovereign Negotiator ⚖️
 
-A professional-grade negotiation assistant powered by Google Gemini and Streamlit.
+Sovereign Negotiator
+An AI-powered strategic platform designed to provide an edge in high-stakes negotiations. Built with Python and Streamlit, this tool utilizes LLM-driven personas (Corporate Attorney, Diplomatic Mediator, Salary Maximizer) to analyze leverage, identify potential risks, and structure equitable agreements. It transforms abstract negotiation goals into concrete, actionable 3-step strategic blueprints. A professional-grade negotiation assistant powered by Google Gemini and Streamlit.
 
 ## Features
 - **Strategic Persona**: Designed to find win-win outcomes.
