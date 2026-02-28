@@ -1,0 +1,11 @@
+# Python environment
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+
+# The Model (DO NOT UPLOAD)
+# Add the name of the folder where you downloaded phi-2
+# (e.g., if you have a folder called 'models', put it here)
+models/
