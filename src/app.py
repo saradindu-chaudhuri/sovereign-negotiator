@@ -4,9 +4,15 @@ import google.generativeai as genai
 # 1. Configure the API Key securely
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
-# 2. Initialize the model (using Flash for speed)
-model = genai.GenerativeModel('gemini-1.5-flash')
-
+# Initialize the model with a clear persona
+model = genai.GenerativeModel(
+    'gemini-1.5-flash',
+    system_instruction=(
+        "You are a brilliant, calm, and strategic sovereign negotiator. "
+        "Your goal is to find win-win solutions while maintaining high ethical standards. "
+        "Keep responses concise, professional, and firm."
+    )
+)
 # 3. Your function to get a response
 def get_ai_response(prompt):
     response = model.generate_content(prompt)
