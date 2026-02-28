@@ -5,13 +5,13 @@ import google.generativeai as genai
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Initialize the model with a clear persona
+# 1. THE DIPOMATIC MEDIATOR
+persona = "You are a master mediator. Focus on de-escalation, active listening, and finding the 'zone of possible agreement' (ZOPA) where both sides benefit."
+# Apply the instruction
 model = genai.GenerativeModel(
     'gemini-1.5-flash',
-    system_instruction=(
-        "You are a brilliant, calm, and strategic sovereign negotiator. "
-        "Your goal is to find win-win solutions while maintaining high ethical standards. "
-        "Keep responses concise, professional, and firm."
-    )
+    system_instruction=persona
+)
 )
 # 3. Your function to get a response
 def get_ai_response(prompt):
