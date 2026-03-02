@@ -43,13 +43,18 @@ st.sidebar.markdown("""
 """)
 
 # ---------------------------------------------------------
-# MODEL INIT
+# MODEL INIT (Refined for Stability)
 # ---------------------------------------------------------
-model = genai.GenerativeModel(
-    'gemini-1.5-flash',
-    system_instruction=STRATEGIES[selected_strategy]
-)
+@st.cache_resource
+def get_model(persona_instruction):
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    return genai.GenerativeModel(
+        'gemini-1.5-flash',
+        system_instruction=persona_instruction
+    )
 
+# Use the function to get your model instance
+model = get_model(STRATEGIES[selected_strategy])
 # ---------------------------------------------------------
 # MAIN HEADER
 # ---------------------------------------------------------
