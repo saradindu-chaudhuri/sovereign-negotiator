@@ -43,16 +43,21 @@ st.sidebar.markdown("""
 """)
 
 # ---------------------------------------------------------
-# MODEL INIT (Refined for Stability)
+# MODEL INIT (Forced Refresh)
 # ---------------------------------------------------------
 @st.cache_resource
 def get_model(persona_instruction):
+    # This will now trigger a fresh connection
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     return genai.GenerativeModel(
-        'gemini-1.5-flash',
+        'gemini-2.0-flash', # Let's try the newer stable model
         system_instruction=persona_instruction
     )
 
+# Use the function to get your model instance
+# Note: If this STILL fails, use st.cache_resource.clear() 
+# in your terminal or restart the app from Streamlit Cloud.
+model = get_model(STRATEGIES[selected_strategy])
 # Use the function to get your model instance
 model = get_model(STRATEGIES[selected_strategy])
 # ---------------------------------------------------------
