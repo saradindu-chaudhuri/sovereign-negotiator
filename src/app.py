@@ -1,136 +1,74 @@
 import streamlit as st
 import google.generativeai as genai
 import datetime
-import time
 
-# ---------------------------------------------------------
-# PAGE CONFIG
-# ---------------------------------------------------------
-st.set_page_config(
-    page_title="Sovereign Negotiator",
-    layout="wide",
-    page_icon="⚖️"
-)
+# --- CONFIG ---
+st.set_page_config(page_title="Sovereign Negotiator", layout="wide", page_icon="⚖️")
 
-# ---------------------------------------------------------
-# MODEL INITIALIZATION (CACHED)
-# ---------------------------------------------------------
+# --- MODEL (Cached) ---
 @st.cache_resource
-def load_model():
+def get_model():
+    # Only run this once
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     return genai.GenerativeModel("gemini-1.5-flash")
 
-model = load_model()
+model = get_model()
 
-# ---------------------------------------------------------
-# PERSONAS
-# ---------------------------------------------------------
+# --- PERSONAS ---
 STRATEGIES = {
-    "💼 Corporate Attorney": "You are a top-tier corporate negotiator. Formal, precise, authoritative. Focus on risk mitigation and ROI.",
-    "🤝 Diplomatic Mediator": "You are a master mediator. Focus on de-escalation and finding the Zone of Possible Agreement (ZOPA).",
-    "💰 Salary Maximizer": "You are a compensation strategist. Data-driven, assertive, focused on value proposition.",
-    "🏗️ Procurement Expert": "You negotiate vendor contracts. Focus on leverage, concessions, and long-term value.",
-    "🏢 Startup Founder": "You negotiate with investors. Focus on storytelling, leverage, and strategic framing."
+    "💼 Corporate Attorney": "Formal, precise, authoritative. Focus on risk mitigation and ROI.",
+    "🤝 Diplomatic Mediator": "Master mediator. Focus on de-escalation and ZOPA.",
+    "💰 Salary Maximizer": "Compensation strategist. Data-driven, assertive, value-focused.",
+    "🏗️ Procurement Expert": "Negotiate vendor contracts. Focus on leverage and concessions.",
+    "🏢 Startup Founder": "Investor negotiations. Focus on storytelling and strategic framing."
 }
 
-# ---------------------------------------------------------
-# SIDEBAR
-# ---------------------------------------------------------
+# --- SIDEBAR ---
 st.sidebar.title("⚖️ Negotiation Suite")
 selected_strategy = st.sidebar.selectbox("Select Expert Persona:", list(STRATEGIES.keys()))
-st.sidebar.markdown("---")
-st.sidebar.info("This tool generates high-leverage negotiation strategies based on your unique scenario.")
 
-# ---------------------------------------------------------
-# SESSION STATE
-# ---------------------------------------------------------
+# --- STATE ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "chat" not in st.session_state:
-    st.session_state.chat = model.start_chat(history=[])
-
-if "cooldown" not in st.session_state:
-    st.session_state.cooldown = 0
-
-# ---------------------------------------------------------
-# COOLDOWN PROTECTION (prevents throttling)
-# ---------------------------------------------------------
-def safe_send(prompt):
-    now = time.time()
-    if now < st.session_state.cooldown:
-        raise Exception("cooldown")
-
-    try:
-        response = st.session_state.chat.send_message(prompt)
-        st.session_state.cooldown = time.time() + 2  # 2-second cooldown
-        return response.text
-    except Exception:
-        st.session_state.cooldown = time.time() + 5  # 5-second cooldown on error
-        raise
-
-# ---------------------------------------------------------
-# MAIN TITLE
-# ---------------------------------------------------------
+# --- UI ---
 st.title(f"Sovereign Negotiator: {selected_strategy}")
-st.subheader("Your AI-Powered Strategic Edge")
 
-# ---------------------------------------------------------
-# STRATEGY BUILDER
-# ---------------------------------------------------------
-with st.expander("🚀 Build your Strategy Plan (Recommended first step)"):
-    scenario = st.text_area("Describe your situation (goal, opponent, leverage):")
+# 1. STRATEGY BLUEPRINT
+with st.expander("🚀 Build your Strategy Plan"):
+    scenario = st.text_area("Describe your situation:")
+    if st.button("Generate Plan"):
+        with st.spinner("Generating..."):
+            prompt = f"Act as {selected_strategy}. Instructions: {STRATEGIES[selected_strategy]}. Create a 3-step action plan for: {scenario}"
+            try:
+                # Use generate_content directly for one-off plans
+                response = model.generate_content(prompt)
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                st.error(f"API Error: {str(e)}")
 
-    if st.button("Generate Strategic Blueprint"):
-        if scenario.strip():
-            with st.spinner("Analyzing leverage..."):
-                prompt = (
-                    f"Act as {selected_strategy}. "
-                    f"Instructions: {STRATEGIES[selected_strategy]}. "
-                    f"Create a structured 3-step negotiation plan for: {scenario}"
-                )
-                try:
-                    plan = safe_send(prompt)
-                    st.markdown(plan)
-                    st.session_state.messages.append({"role": "assistant", "content": plan})
-                except:
-                    st.error("The Negotiator is temporarily throttled. Please wait 5 seconds and try again.")
-        else:
-            st.warning("Please describe your scenario first.")
+# 2. CHAT
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-# ---------------------------------------------------------
-# CHAT HISTORY DISPLAY
-# ---------------------------------------------------------
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# ---------------------------------------------------------
-# CHAT INPUT
-# ---------------------------------------------------------
-if user_input := st.chat_input("Ask for a counter-argument or negotiation tactic..."):
+if user_input := st.chat_input("Ask a follow-up question..."):
     st.session_state.messages.append({"role": "user", "content": user_input})
-
     with st.chat_message("user"):
         st.markdown(user_input)
-
+    
     with st.chat_message("assistant"):
         try:
-            reply = safe_send(
-                f"Persona: {STRATEGIES[selected_strategy]}. User input: {user_input}"
-            )
-            st.markdown(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-        except:
-            st.error("The Negotiator is temporarily throttled. Please wait 5 seconds and try again.")
+            # Simple chat generation
+            chat_prompt = f"Persona: {selected_strategy}. Context: {user_input}"
+            response = model.generate_content(chat_prompt)
+            st.markdown(response.text)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+        except Exception as e:
+            st.error("Rate limit reached. Please wait a moment and try again.")
 
-# ---------------------------------------------------------
-# EXPORT BUTTON
-# ---------------------------------------------------------
+# --- EXPORT ---
 if st.session_state.messages:
     transcript = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages])
-    st.download_button(
-        "📥 Download Negotiation Report",
-        transcript,
-        file_name=f"report_{datetime.date.today()}.txt"
-    )
+    st.download_button("📥 Download Report", transcript, file_name="report.txt")
