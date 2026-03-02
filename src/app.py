@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import datetime
+import time
 
 # ---------------------------------------------------------
 # PAGE CONFIG
@@ -41,12 +42,6 @@ st.sidebar.markdown("---")
 st.sidebar.info("This tool generates high-leverage negotiation strategies based on your unique scenario.")
 
 # ---------------------------------------------------------
-# MAIN TITLE
-# ---------------------------------------------------------
-st.title(f"Sovereign Negotiator: {selected_strategy}")
-st.subheader("Your AI-Powered Strategic Edge")
-
-# ---------------------------------------------------------
 # SESSION STATE
 # ---------------------------------------------------------
 if "messages" not in st.session_state:
@@ -54,6 +49,31 @@ if "messages" not in st.session_state:
 
 if "chat" not in st.session_state:
     st.session_state.chat = model.start_chat(history=[])
+
+if "cooldown" not in st.session_state:
+    st.session_state.cooldown = 0
+
+# ---------------------------------------------------------
+# COOLDOWN PROTECTION (prevents throttling)
+# ---------------------------------------------------------
+def safe_send(prompt):
+    now = time.time()
+    if now < st.session_state.cooldown:
+        raise Exception("cooldown")
+
+    try:
+        response = st.session_state.chat.send_message(prompt)
+        st.session_state.cooldown = time.time() + 2  # 2-second cooldown
+        return response.text
+    except Exception:
+        st.session_state.cooldown = time.time() + 5  # 5-second cooldown on error
+        raise
+
+# ---------------------------------------------------------
+# MAIN TITLE
+# ---------------------------------------------------------
+st.title(f"Sovereign Negotiator: {selected_strategy}")
+st.subheader("Your AI-Powered Strategic Edge")
 
 # ---------------------------------------------------------
 # STRATEGY BUILDER
@@ -70,12 +90,11 @@ with st.expander("🚀 Build your Strategy Plan (Recommended first step)"):
                     f"Create a structured 3-step negotiation plan for: {scenario}"
                 )
                 try:
-                    response = st.session_state.chat.send_message(prompt)
-                    plan = response.text
+                    plan = safe_send(prompt)
                     st.markdown(plan)
                     st.session_state.messages.append({"role": "assistant", "content": plan})
-                except Exception:
-                    st.error("The Negotiator is temporarily throttled. Please wait 30 seconds and try again.")
+                except:
+                    st.error("The Negotiator is temporarily throttled. Please wait 5 seconds and try again.")
         else:
             st.warning("Please describe your scenario first.")
 
@@ -97,13 +116,13 @@ if user_input := st.chat_input("Ask for a counter-argument or negotiation tactic
 
     with st.chat_message("assistant"):
         try:
-            response = st.session_state.chat.send_message(
+            reply = safe_send(
                 f"Persona: {STRATEGIES[selected_strategy]}. User input: {user_input}"
             )
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except Exception:
-            st.error("The Negotiator is temporarily throttled. Please wait 30 seconds and try again.")
+            st.markdown(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+        except:
+            st.error("The Negotiator is temporarily throttled. Please wait 5 seconds and try again.")
 
 # ---------------------------------------------------------
 # EXPORT BUTTON
