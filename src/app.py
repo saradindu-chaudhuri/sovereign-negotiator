@@ -15,7 +15,7 @@ def get_client():
     return Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 client = get_client()
-MODEL_NAME = "llama3-8b-8192"   # Most stable for Streamlit Cloud
+MODEL_NAME = "llama3-70b-8192"   # SUPPORTED MODEL
 
 # ---------------------------------------------------------
 # PERSONAS
