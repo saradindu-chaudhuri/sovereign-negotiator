@@ -15,7 +15,7 @@ def get_client():
     return Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 client = get_client()
-MODEL_NAME = "llama3-70b-8192"
+MODEL_NAME = "llama3-8b-8192"   # More stable than 70B for Streamlit Cloud
 
 # ---------------------------------------------------------
 # PERSONAS
@@ -48,11 +48,15 @@ def ask_groq(prompt):
                     "Provide structured, practical, high‑leverage negotiation advice."
                 )
             },
-            {"role": "user", "content": prompt}
+            {
+                "role": "user",
+                "content": prompt
+            }
         ],
         temperature=0.7,
+        max_tokens=500
     )
-    return response.choices[0].message.content
+    return response.choices[0].message["content"]
 
 # ---------------------------------------------------------
 # UI
