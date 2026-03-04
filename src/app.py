@@ -1,21 +1,21 @@
 import streamlit as st
-import google.generativeai as genai
+from groq import Groq
 import datetime
-import time
 
 # ---------------------------------------------------------
 # CONFIG
 # ---------------------------------------------------------
 st.set_page_config(page_title="Sovereign Negotiator", layout="wide", page_icon="⚖️")
 
-MODEL_NAME = "gemini-1.5-flash"
-
+# ---------------------------------------------------------
+# MODEL INIT
+# ---------------------------------------------------------
 @st.cache_resource
-def get_model():
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    return genai.GenerativeModel(MODEL_NAME)
+def get_client():
+    return Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-model = get_model()
+client = get_client()
+MODEL_NAME = "llama3-70b-8192"
 
 # ---------------------------------------------------------
 # PERSONAS
@@ -29,36 +29,25 @@ STRATEGIES = {
 }
 
 # ---------------------------------------------------------
-# SESSION STATE
-# ---------------------------------------------------------
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if "chat" not in st.session_state:
-    st.session_state.chat = model.start_chat(history=[])
-
-if "cooldown" not in st.session_state:
-    st.session_state.cooldown = 0
-
-def safe_send(prompt):
-    now = time.time()
-    if now < st.session_state.cooldown:
-        raise Exception("cooldown")
-
-    try:
-        response = st.session_state.chat.send_message(prompt)
-        st.session_state.cooldown = time.time() + 2
-        return response.text
-    except:
-        st.session_state.cooldown = time.time() + 5
-        raise
-
-# ---------------------------------------------------------
 # UI
 # ---------------------------------------------------------
 st.sidebar.title("⚖️ Negotiation Suite")
 selected_strategy = st.sidebar.selectbox("Select Expert Persona:", list(STRATEGIES.keys()))
 st.title(f"Sovereign Negotiator: {selected_strategy}")
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# ---------------------------------------------------------
+# HELPER
+# ---------------------------------------------------------
+def ask_groq(prompt):
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
+    )
+    return response.choices[0].message.content
 
 # ---------------------------------------------------------
 # STRATEGY BUILDER
@@ -71,14 +60,11 @@ with st.expander("🚀 Build your Strategy Plan"):
                 prompt = (
                     f"Act as {selected_strategy}. "
                     f"{STRATEGIES[selected_strategy]}. "
-                    f"Create a 3-step action plan for: {scenario}"
+                    f"Create a structured 3-step negotiation plan for: {scenario}"
                 )
-                try:
-                    plan = safe_send(prompt)
-                    st.markdown(plan)
-                    st.session_state.messages.append({"role": "assistant", "content": plan})
-                except:
-                    st.error("Negotiator is busy. Please wait 5 seconds and try again.")
+                answer = ask_groq(prompt)
+                st.markdown(answer)
+                st.session_state.messages.append({"role": "assistant", "content": answer})
         else:
             st.warning("Please describe your scenario first.")
 
@@ -95,14 +81,11 @@ if user_input := st.chat_input("Ask for a counter-argument or tactic..."):
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
-        try:
-            reply = safe_send(
-                f"Persona: {selected_strategy}. User: {user_input}"
-            )
-            st.markdown(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-        except:
-            st.error("Negotiator is busy. Please wait 5 seconds and try again.")
+        reply = ask_groq(
+            f"Persona: {selected_strategy}. User question: {user_input}"
+        )
+    st.markdown(reply)
+    st.session_state.messages.append({"role": "assistant", "content": reply})
 
 # ---------------------------------------------------------
 # EXPORT
