@@ -29,12 +29,8 @@ STRATEGIES = {
 }
 
 # ---------------------------------------------------------
-# UI
+# SESSION STATE
 # ---------------------------------------------------------
-st.sidebar.title("⚖️ Negotiation Suite")
-selected_strategy = st.sidebar.selectbox("Select Expert Persona:", list(STRATEGIES.keys()))
-st.title(f"Sovereign Negotiator: {selected_strategy}")
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -44,10 +40,26 @@ if "messages" not in st.session_state:
 def ask_groq(prompt):
     response = client.chat.completions.create(
         model=MODEL_NAME,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are Sovereign Negotiator, an elite negotiation strategist. "
+                    "Provide structured, practical, high‑leverage negotiation advice."
+                )
+            },
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.7,
     )
     return response.choices[0].message.content
+
+# ---------------------------------------------------------
+# UI
+# ---------------------------------------------------------
+st.sidebar.title("⚖️ Negotiation Suite")
+selected_strategy = st.sidebar.selectbox("Select Expert Persona:", list(STRATEGIES.keys()))
+st.title(f"Sovereign Negotiator: {selected_strategy}")
 
 # ---------------------------------------------------------
 # STRATEGY BUILDER
@@ -80,11 +92,13 @@ if user_input := st.chat_input("Ask for a counter-argument or tactic..."):
     with st.chat_message("user"):
         st.markdown(user_input)
 
+    reply = ask_groq(
+        f"Persona: {selected_strategy}. User question: {user_input}"
+    )
+
     with st.chat_message("assistant"):
-        reply = ask_groq(
-            f"Persona: {selected_strategy}. User question: {user_input}"
-        )
-    st.markdown(reply)
+        st.markdown(reply)
+
     st.session_state.messages.append({"role": "assistant", "content": reply})
 
 # ---------------------------------------------------------
